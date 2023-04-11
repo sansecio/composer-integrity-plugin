@@ -1,0 +1,25 @@
+{
+  "repositories": {
+    "sansec/composer-integrity-plugin": {
+      "type": "path",
+      "url": "../",
+      "options": {
+        "symlink": true
+      }
+    },
+    "mage-os": {
+      "url": "https://mirror.mage-os.org/",
+      "type": "composer"
+    }
+  },
+  "require": {
+    "sansec/composer-integrity-plugin": "@dev",
+    "magento/framework": "*"
+  },
+  "config": {
+    "allow-plugins": {
+      "sansec/composer-integrity-plugin": true,
+      "magento/composer-dependency-version-audit-plugin": false
+    }
+  }
+}

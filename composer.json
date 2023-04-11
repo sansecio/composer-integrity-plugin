@@ -7,9 +7,12 @@
   "require-dev": {
     "composer/composer": "^2.0"
   },
+  "extra": {
+    "class": "Sansec\\Integrity\\Plugin"
+  },
   "autoload": {
     "psr-4": {
-      "Sansec\\ComposerIntegrity\\": "src/"
+      "Sansec\\Integrity\\": "src/"
     }
   }
 }
