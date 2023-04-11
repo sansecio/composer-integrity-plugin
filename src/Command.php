@@ -4,6 +4,10 @@ namespace Sansec\Integrity;
 
 use Composer\Command\BaseCommand;
 use Composer\Composer;
+use GuzzleHttp\Client;
+use GuzzleHttp\RequestOptions;
+use Symfony\Component\Console\Helper\Table;
+use Symfony\Component\Console\Helper\TableStyle;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
@@ -16,12 +20,22 @@ class Command extends BaseCommand
         'js'
     ];
 
-    private Composer $composer;
+    private const VERDICT_TYPES = [
+        'unknown' => '❔',
+        'good' => '✅',
+        'bad' => '❌'
+    ];
 
-    public function __construct(Composer $composer, string $name = null)
+    private const API_URL = 'https://api.sansec.io/v1/vendor/integrity';
+
+    private Composer $composer;
+    private Client $client;
+
+    public function __construct(Composer $composer, Client $client, string $name = null)
     {
         parent::__construct($name);
         $this->composer = $composer;
+        $this->client = $client;
     }
 
     protected function configure()
@@ -82,7 +96,7 @@ class Command extends BaseCommand
         return strtoupper(hash_final($context));
     }
 
-    private function getVendorState(): array
+    private function getPackages(): array
     {
         $packages = [];
         foreach ($this->composer->getRepositoryManager()->getLocalRepository()->getPackages() as $package) {
@@ -90,22 +104,51 @@ class Command extends BaseCommand
 
             $packages[] = [
                 'id' => $this->getPackageIdHash($package->getName(), $package->getPrettyVersion()),
-                'data' => $this->getPackageDataHash($packagePath)
+                'data' => $this->getPackageDataHash($packagePath),
+                'name' => $package->getName(),
+                'version' => $package->getPrettyVersion()
             ];
         }
+        return $packages;
+    }
 
+    private function getVendorState(array $packages): array
+    {
         return [
             'id'        => $this->getInstallIdHash(getcwd()),
             'hash_type' => 0, // xxh64
             'origin'    => 1,
-            'pkg'       => $packages
+            'pkg'       => array_map(
+                fn(array $package) => ['id' => $package['id'], 'data' => $package['data']],
+                $packages
+            )
         ];
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        var_dump($this->getVendorState());
+        $packages = $this->getPackages();
+        $vendorState = $this->getVendorState($packages);
 
-        return 0;
+        $response = $this->client->post(self::API_URL, [RequestOptions::JSON => $vendorState]);
+        $verdicts = json_decode($response->getBody()->getContents(), true);
+
+        $rows = [];
+        foreach ($packages as $package) {
+            $rows[] = [
+                self::VERDICT_TYPES[$verdicts[$package['id']]['verdict'] ?? 'unknown'],
+                $package['name'],
+                $package['version'],
+                $package['data'],
+                $verdicts[$package['id']]['percentage'] ?? '-'
+            ];
+        }
+
+        $table = new Table($output);
+        $table->setHeaders(['Status', 'Package', 'Version', 'Checksum', 'Percentage'])->setRows($rows);
+        $table->setColumnStyle(0, (new TableStyle())->setPadType(STR_PAD_BOTH));
+        $table->render();
+
+        return \Symfony\Component\Console\Command\Command::SUCCESS;
     }
 }

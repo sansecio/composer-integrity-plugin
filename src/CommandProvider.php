@@ -3,6 +3,7 @@
 namespace Sansec\Integrity;
 
 use Composer\Composer;
+use GuzzleHttp\Client;
 
 class CommandProvider implements \Composer\Plugin\Capability\CommandProvider
 {
@@ -15,8 +16,6 @@ class CommandProvider implements \Composer\Plugin\Capability\CommandProvider
 
     public function getCommands()
     {
-        return [
-            new Command($this->composer)
-        ];
+        return [new Command($this->composer, new Client())];
     }
 }

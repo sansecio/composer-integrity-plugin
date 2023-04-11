@@ -2,7 +2,8 @@
   "name": "sansec/composer-integrity-plugin",
   "type": "composer-plugin",
   "require": {
-    "composer-plugin-api": "^2.0"
+    "composer-plugin-api": "^2.0",
+    "guzzlehttp/guzzle": "^7.5"
   },
   "require-dev": {
     "composer/composer": "^2.0"
