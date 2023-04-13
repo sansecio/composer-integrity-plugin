@@ -16,6 +16,8 @@ class CommandProvider implements \Composer\Plugin\Capability\CommandProvider
 
     public function getCommands()
     {
-        return [new Command($this->composer, new Client())];
+        return [
+            new Command(new Integrity($this->composer, new Client()))
+        ];
     }
 }
