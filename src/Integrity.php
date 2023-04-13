@@ -44,7 +44,10 @@ class Integrity
             'hash_type' => 0, // xxh64
             'origin'    => 1,
             'pkg'       => array_map(
-                fn(array $package) => ['id' => $package['id'], 'data' => $package['data']],
+                fn(array $package) => [
+                    'id'   => $package['id'],
+                    'data' => $package['data']
+                ],
                 $packages
             )
         ];
