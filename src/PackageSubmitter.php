@@ -62,6 +62,17 @@ class PackageSubmitter
         return json_decode($response->getBody()->getContents(), true);
     }
 
+    private function getPackageVerdict(string $packageId, array $verdicts): string
+    {
+        if (in_array($packageId, $verdicts['mismatch'])) {
+            return 'mismatch';
+        }
+        if (in_array($packageId, $verdicts['unknown'])) {
+            return 'unknown';
+        }
+        return 'good';
+    }
+
     public function getPackageVerdicts(): array
     {
         $packages = $this->getPackages();
@@ -73,8 +84,8 @@ class PackageSubmitter
               $package['name'],
               $package['version'],
               $package['data'],
-              $verdicts[$package['id']]['percentage'] ?? '-',
-              $verdicts[$package['id']]['verdict'] ?? 'unknown'
+              '-',
+              $this->getPackageVerdict($package['id'], $verdicts)
             );
         }
         return $packageVerdicts;

@@ -7,6 +7,7 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Helper\TableStyle;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class IntegrityCommand extends BaseCommand
@@ -14,8 +15,10 @@ class IntegrityCommand extends BaseCommand
     private const VERDICT_TYPES = [
         'unknown' => '<fg=white>?</>',
         'good' => '<fg=green>✓</>',
-        'bad' => '<fg=red>⨉</>'
+        'mismatch' => '<fg=red>⨉</>'
     ];
+
+    private const OPTION_NAME_SKIP_GOOD = 'skip-good';
 
     public function __construct(private readonly PackageSubmitter $integrity, string $name = null)
     {
@@ -24,11 +27,19 @@ class IntegrityCommand extends BaseCommand
 
     protected function configure()
     {
-        $this->setName('integrity')->setDescription('Checks composer integrity.');
+        $this
+            ->setName('integrity')
+            ->setDescription('Checks composer integrity.')
+            ->addOption('skip-good', null, InputOption::VALUE_OPTIONAL);
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
+        $verdicts = $this->integrity->getPackageVerdicts();
+        if ($input->hasOption('skip-good')) {
+            $verdicts = array_filter($verdicts, fn(PackageVerdict $verdict) => $verdict->verdict != 'good');
+        }
+
         $table = new Table($output);
         $table
             ->setHeaders(['Status', 'Package', 'Version', 'Checksum', 'Percentage'])
@@ -38,7 +49,7 @@ class IntegrityCommand extends BaseCommand
                 $packageVerdict->version,
                 $packageVerdict->checksum,
                 $packageVerdict->percentage
-            ], $this->integrity->getPackageVerdicts()));
+            ], $verdicts));
 
         $table->setColumnStyle(0, (new TableStyle())->setPadType(STR_PAD_BOTH));
         $table->render();
