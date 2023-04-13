@@ -17,14 +17,7 @@ class Integrity
         'js'
     ];
 
-    private Composer $composer;
-    private Client $client;
-
-    public function __construct(Composer $composer, Client $client)
-    {
-        $this->composer = $composer;
-        $this->client = $client;
-    }
+    public function __construct(private readonly Composer $composer, private readonly Client $client) {}
 
     private function getVendorDirectory(): string
     {

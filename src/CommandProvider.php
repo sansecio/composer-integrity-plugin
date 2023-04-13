@@ -7,7 +7,7 @@ use GuzzleHttp\Client;
 
 class CommandProvider implements \Composer\Plugin\Capability\CommandProvider
 {
-    private Composer $composer;
+    private readonly Composer $composer;
 
     public function __construct(array $config)
     {

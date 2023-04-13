@@ -16,12 +16,9 @@ class Command extends BaseCommand
         'bad' => '<fg=red>⨉</>'
     ];
 
-    private Integrity $integrity;
-
-    public function __construct(Integrity $integrity, string $name = null)
+    public function __construct(private readonly Integrity $integrity, string $name = null)
     {
         parent::__construct($name);
-        $this->integrity = $integrity;
     }
 
     protected function configure()
