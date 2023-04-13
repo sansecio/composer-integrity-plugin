@@ -6,7 +6,7 @@ use Composer\Composer;
 use GuzzleHttp\Client;
 use GuzzleHttp\RequestOptions;
 
-class Integrity
+class PackageSubmitter
 {
     private const API_URL = 'https://api.sansec.io/v1/vendor/integrity';
 
@@ -28,9 +28,9 @@ class Integrity
             $packagePath = implode(DIRECTORY_SEPARATOR, [$this->getVendorDirectory(), $package->getName()]);
 
             $packages[] = [
-                'id' => $this->hasher->generatePackageIdHash($package->getName(), $package->getPrettyVersion()),
-                'data' => $this->hasher->generatePackageDataHash($packagePath),
-                'name' => $package->getName(),
+                'id'      => $this->hasher->generatePackageIdHash($package->getName(), $package->getPrettyVersion()),
+                'data'    => $this->hasher->generatePackageDataHash($packagePath),
+                'name'    => $package->getName(),
                 'version' => $package->getPrettyVersion()
             ];
         }
@@ -53,17 +53,23 @@ class Integrity
         ];
     }
 
+    private function submitPackages(array $packages): array
+    {
+        $response = $this->client->post(
+            self::API_URL,
+            [RequestOptions::JSON => $this->getVendorState($packages)]
+        );
+        return json_decode($response->getBody()->getContents(), true);
+    }
+
     public function getPackageVerdicts(): array
     {
         $packages = $this->getPackages();
-        $vendorState = $this->getVendorState($packages);
-
-        $response = $this->client->post(self::API_URL, [RequestOptions::JSON => $vendorState]);
-        $verdicts = json_decode($response->getBody()->getContents(), true);
+        $verdicts = $this->submitPackages($packages);
 
         $packageVerdicts = [];
         foreach ($packages as $package) {
-            $packageVerdicts[] = new Verdict(
+            $packageVerdicts[] = new PackageVerdict(
               $package['name'],
               $package['version'],
               $package['data'],

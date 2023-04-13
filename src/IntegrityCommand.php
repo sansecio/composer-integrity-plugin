@@ -3,12 +3,13 @@
 namespace Sansec\Integrity;
 
 use Composer\Command\BaseCommand;
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Helper\TableStyle;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-class Command extends BaseCommand
+class IntegrityCommand extends BaseCommand
 {
     private const VERDICT_TYPES = [
         'unknown' => '<fg=white>?</>',
@@ -16,7 +17,7 @@ class Command extends BaseCommand
         'bad' => '<fg=red>⨉</>'
     ];
 
-    public function __construct(private readonly Integrity $integrity, string $name = null)
+    public function __construct(private readonly PackageSubmitter $integrity, string $name = null)
     {
         parent::__construct($name);
     }
@@ -31,7 +32,7 @@ class Command extends BaseCommand
         $table = new Table($output);
         $table
             ->setHeaders(['Status', 'Package', 'Version', 'Checksum', 'Percentage'])
-            ->setRows(array_map(fn(Verdict $packageVerdict) => [
+            ->setRows(array_map(fn(PackageVerdict $packageVerdict) => [
                 self::VERDICT_TYPES[$packageVerdict->verdict],
                 $packageVerdict->name,
                 $packageVerdict->version,
@@ -42,6 +43,6 @@ class Command extends BaseCommand
         $table->setColumnStyle(0, (new TableStyle())->setPadType(STR_PAD_BOTH));
         $table->render();
 
-        return \Symfony\Component\Console\Command\Command::SUCCESS;
+        return Command::SUCCESS;
     }
 }

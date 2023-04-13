@@ -11,7 +11,10 @@ class Hasher
         'js'
     ];
 
-    private function getPackageFiles($dir): array {
+    private const CLIENT_NAME = 'composer-integrity-plugin';
+
+    private function getPackageFiles(string $dir): array
+    {
         $files = [];
         $items = scandir($dir);
 
@@ -55,7 +58,7 @@ class Hasher
         $context = hash_init('xxh64');
         hash_update($context, file_get_contents(implode(DIRECTORY_SEPARATOR, [$baseDir, 'composer.json'])));
         hash_update($context, file_get_contents(implode(DIRECTORY_SEPARATOR, [$baseDir, 'composer.lock'])));
-        hash_update($context, 'integrity-plugin');
+        hash_update($context, self::CLIENT_NAME);
         return strtoupper(hash_final($context));
     }
 }
