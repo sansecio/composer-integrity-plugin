@@ -11,3 +11,18 @@ We collect the following data:
 
 These hashes are then compared against a larger database.  No sensitive data or contents of files is collected.
 
+## Installation
+
+```bash
+composer require --dev sansec/composer-integrity-plugin
+```
+
+## Usage
+
+```bash
+composer integrity
+```
+
+## License
+
+[MIT License](./LICENSE) - Copyright (c) 2023 Sansec
