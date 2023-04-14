@@ -28,6 +28,7 @@ class PackageSubmitter
     {
         $composerPackages = $this->composer->getRepositoryManager()->getLocalRepository()->getPackages();
         $progressBar = new ProgressBar($output, count($composerPackages));
+        $progressBar->setBarWidth(100);
         $progressBar->setRedrawFrequency(1);
 
         $packages = [];
