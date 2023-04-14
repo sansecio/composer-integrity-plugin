@@ -8,6 +8,7 @@ class PackageVerdict
         public readonly string $name,
         public readonly string $version,
         public readonly string $checksum,
+        public readonly string $id,
         public readonly string $percentage,
         public readonly string $verdict
     ) {}

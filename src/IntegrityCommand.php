@@ -42,16 +42,19 @@ class IntegrityCommand extends BaseCommand
 
         $table = new Table($output);
         $table
-            ->setHeaders(['Status', 'Package', 'Version', 'Checksum', 'Percentage'])
+            ->setHeaders(['Status', 'Package', 'Version', 'Package ID', 'Checksum', 'Percentage'])
             ->setRows(array_map(fn(PackageVerdict $packageVerdict) => [
                 self::VERDICT_TYPES[$packageVerdict->verdict],
                 $packageVerdict->name,
                 $packageVerdict->version,
+                $packageVerdict->id,
                 $packageVerdict->checksum,
-                $packageVerdict->percentage
+                $packageVerdict->percentage . '%'
             ], $verdicts));
 
-        $table->setColumnStyle(0, (new TableStyle())->setPadType(STR_PAD_BOTH));
+        foreach ([0, 4] as $centeredColumnId) {
+            $table->setColumnStyle($centeredColumnId, (new TableStyle())->setPadType(STR_PAD_BOTH));
+        }
         $table->render();
 
         return Command::SUCCESS;

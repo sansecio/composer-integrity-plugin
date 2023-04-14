@@ -83,7 +83,8 @@ class PackageSubmitter
               $package['name'],
               $package['version'],
               $package['data'],
-              '-',
+              $package['id'],
+              $verdicts[$package['id']]['incidence_perc'] ?? '-',
               $verdicts[$package['id']]['verdict'] ?? 'unknown'
             );
         }
