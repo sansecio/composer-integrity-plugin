@@ -23,6 +23,12 @@ composer require --dev sansec/composer-integrity-plugin
 composer integrity
 ```
 
+# Caveats
+
+The plugin does not consider patches, such as those applied through [composer-patches](https://github.com/cweagans/composer-patches), via a `post-install-cmd` composer script, or editing in `vendor` outright.
+
+In such instances, it is the user's responsibility to assess the situation and take appropriate action.
+
 ## License
 
 [MIT License](./LICENSE) - Copyright (c) 2023 Sansec
