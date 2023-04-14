@@ -36,14 +36,15 @@ class IntegrityCommand extends BaseCommand
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $verdicts = $this->integrity->getPackageVerdicts();
+
         if ($input->getOption(self::OPTION_NAME_SKIP_MATCH) !== false) {
-            $verdicts = array_filter($verdicts, fn(PackageVerdict $verdict) => $verdict->verdict != 'match');
+            $verdicts = array_filter($verdicts, fn (PackageVerdict $verdict) => $verdict->verdict != 'match');
         }
 
         $table = new Table($output);
         $table
             ->setHeaders(['Status', 'Package', 'Version', 'Package ID', 'Checksum', 'Percentage'])
-            ->setRows(array_map(fn(PackageVerdict $packageVerdict) => [
+            ->setRows(array_map(fn (PackageVerdict $packageVerdict) => [
                 self::VERDICT_TYPES[$packageVerdict->verdict],
                 $packageVerdict->name,
                 $packageVerdict->version,
@@ -57,6 +58,8 @@ class IntegrityCommand extends BaseCommand
         }
         $table->render();
 
-        return Command::SUCCESS;
+        $mismatching = array_filter($verdicts, fn (PackageVerdict $verdict) => $verdict->verdict == 'mismatch');
+
+        return count($mismatching) > 0 ? Command::FAILURE : Command::SUCCESS;
     }
 }
