@@ -30,13 +30,13 @@ class IntegrityCommand extends BaseCommand
         $this
             ->setName('integrity')
             ->setDescription('Checks composer integrity.')
-            ->addOption(self::OPTION_NAME_SKIP_MATCH, null, InputOption::VALUE_OPTIONAL);
+            ->addOption(self::OPTION_NAME_SKIP_MATCH, null, InputOption::VALUE_OPTIONAL, 'Skip matching checksums.', false);
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $verdicts = $this->integrity->getPackageVerdicts();
-        if ($input->hasOption(self::OPTION_NAME_SKIP_MATCH)) {
+        if ($input->getOption(self::OPTION_NAME_SKIP_MATCH) !== false) {
             $verdicts = array_filter($verdicts, fn(PackageVerdict $verdict) => $verdict->verdict != 'match');
         }
 
