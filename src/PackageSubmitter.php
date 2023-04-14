@@ -48,7 +48,7 @@ class PackageSubmitter
             ];
         }
 
-        $progressBar->finish();
+        $progressBar->clear();
 
         return $packages;
     }
@@ -107,4 +107,3 @@ class PackageSubmitter
         return $packageVerdicts;
     }
 }
-
