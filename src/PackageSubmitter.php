@@ -25,6 +25,10 @@ class PackageSubmitter
     {
         $packages = [];
         foreach ($this->composer->getRepositoryManager()->getLocalRepository()->getPackages() as $package) {
+            if ($package->getType() == 'metapackage') {
+                continue;
+            }
+
             $packagePath = implode(DIRECTORY_SEPARATOR, [$this->getVendorDirectory(), $package->getName()]);
 
             $packages[] = [
