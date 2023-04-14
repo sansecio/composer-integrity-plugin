@@ -5,6 +5,8 @@ namespace Sansec\Integrity;
 use Composer\Composer;
 use GuzzleHttp\Client;
 use GuzzleHttp\RequestOptions;
+use Symfony\Component\Console\Helper\ProgressBar;
+use Symfony\Component\Console\Output\OutputInterface;
 
 class PackageSubmitter
 {
@@ -14,17 +16,24 @@ class PackageSubmitter
         private readonly Composer $composer,
         private readonly Client $client,
         private readonly Hasher $hasher
-    ) {}
+    ) {
+    }
 
     private function getVendorDirectory(): string
     {
         return $this->composer->getConfig()->get('vendor-dir');
     }
 
-    private function getPackages(): array
+    private function getPackages(OutputInterface $output): array
     {
+        $composerPackages = $this->composer->getRepositoryManager()->getLocalRepository()->getPackages();
+        $progressBar = new ProgressBar($output, count($composerPackages));
+        $progressBar->setRedrawFrequency(1);
+
         $packages = [];
-        foreach ($this->composer->getRepositoryManager()->getLocalRepository()->getPackages() as $package) {
+        foreach ($composerPackages as $package) {
+            $progressBar->advance();
+
             if ($package->getType() == 'metapackage') {
                 continue;
             }
@@ -38,6 +47,9 @@ class PackageSubmitter
                 'version' => $package->getPrettyVersion()
             ];
         }
+
+        $progressBar->finish();
+
         return $packages;
     }
 
@@ -48,7 +60,7 @@ class PackageSubmitter
             'hash_type' => 0, // xxh64
             'origin'    => 1,
             'pkg'       => array_map(
-                fn(array $package) => [
+                fn (array $package) => [
                     'id'   => $package['id'],
                     'data' => $package['data']
                 ],
@@ -76,22 +88,23 @@ class PackageSubmitter
         return $verdictsByPackageVer;
     }
 
-    public function getPackageVerdicts(): array
+    public function getPackageVerdicts(OutputInterface $output): array
     {
-        $packages = $this->getPackages();
+        $packages = $this->getPackages($output);
         $verdicts = $this->submitPackages($packages);
 
         $packageVerdicts = [];
         foreach ($packages as $package) {
             $packageVerdicts[] = new PackageVerdict(
-              $package['name'],
-              $package['version'],
-              $package['data'],
-              $package['id'],
-              $verdicts[$package['id']]['incidence_perc'] ?? '-',
-              $verdicts[$package['id']]['verdict'] ?? 'unknown'
+                $package['name'],
+                $package['version'],
+                $package['data'],
+                $package['id'],
+                $verdicts[$package['id']]['incidence_perc'] ?? '-',
+                $verdicts[$package['id']]['verdict'] ?? 'unknown'
             );
         }
         return $packageVerdicts;
     }
 }
+

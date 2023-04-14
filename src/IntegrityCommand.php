@@ -20,7 +20,7 @@ class IntegrityCommand extends BaseCommand
 
     private const OPTION_NAME_SKIP_MATCH = 'skip-match';
 
-    public function __construct(private readonly PackageSubmitter $integrity, string $name = null)
+    public function __construct(private readonly PackageSubmitter $submitter, string $name = null)
     {
         parent::__construct($name);
     }
@@ -35,7 +35,7 @@ class IntegrityCommand extends BaseCommand
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $verdicts = $this->integrity->getPackageVerdicts();
+        $verdicts = $this->submitter->getPackageVerdicts($output);
 
         if ($input->getOption(self::OPTION_NAME_SKIP_MATCH) !== false) {
             $verdicts = array_filter($verdicts, fn (PackageVerdict $verdict) => $verdict->verdict != 'match');
