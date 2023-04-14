@@ -39,6 +39,10 @@ class PackageSubmitter
                 continue;
             }
 
+            if (strpos($package->getVersion(), 'dev-') === 0) {
+                continue;
+            }
+
             $packagePath = implode(DIRECTORY_SEPARATOR, [$this->getVendorDirectory(), $package->getName()]);
 
             $packages[] = [
