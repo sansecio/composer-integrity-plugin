@@ -18,7 +18,7 @@ class IntegrityCommand extends BaseCommand
         'mismatch' => '<fg=red>⨉</>'
     ];
 
-    private const OPTION_NAME_SKIP_GOOD = 'skip-match';
+    private const OPTION_NAME_SKIP_MATCH = 'skip-match';
 
     public function __construct(private readonly PackageSubmitter $integrity, string $name = null)
     {
@@ -30,13 +30,13 @@ class IntegrityCommand extends BaseCommand
         $this
             ->setName('integrity')
             ->setDescription('Checks composer integrity.')
-            ->addOption('skip-match', null, InputOption::VALUE_OPTIONAL);
+            ->addOption(self::OPTION_NAME_SKIP_MATCH, null, InputOption::VALUE_OPTIONAL);
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $verdicts = $this->integrity->getPackageVerdicts();
-        if ($input->hasOption('skip-match')) {
+        if ($input->hasOption(self::OPTION_NAME_SKIP_MATCH)) {
             $verdicts = array_filter($verdicts, fn(PackageVerdict $verdict) => $verdict->verdict != 'match');
         }
 
