@@ -8,7 +8,7 @@ use GuzzleHttp\RequestOptions;
 
 class PackageSubmitter
 {
-    private const API_URL = 'https://api.sansec.io/v1/vendor/integrity';
+    private const API_URL = 'https://api.sansec.io/v1/composer/integrity';
 
     public function __construct(
         private readonly Composer $composer,
@@ -59,18 +59,17 @@ class PackageSubmitter
             self::API_URL,
             [RequestOptions::JSON => $this->getVendorState($packages)]
         );
-        return json_decode($response->getBody()->getContents(), true);
-    }
 
-    private function getPackageVerdict(string $packageId, array $verdicts): string
-    {
-        if (in_array($packageId, $verdicts['mismatch'])) {
-            return 'mismatch';
+        $result = json_decode($response->getBody()->getContents(), true);
+        if (!isset($result['verdicts'])) {
+            return [];
         }
-        if (in_array($packageId, $verdicts['unknown'])) {
-            return 'unknown';
+
+        $verdictsByPackageVer = [];
+        foreach ($result['verdicts'] as $verdict) {
+            $verdictsByPackageVer[$verdict['pkg_ver']] = $verdict;
         }
-        return 'good';
+        return $verdictsByPackageVer;
     }
 
     public function getPackageVerdicts(): array
@@ -85,7 +84,7 @@ class PackageSubmitter
               $package['version'],
               $package['data'],
               '-',
-              $this->getPackageVerdict($package['id'], $verdicts)
+              $verdicts[$package['id']]['verdict'] ?? 'unknown'
             );
         }
         return $packageVerdicts;

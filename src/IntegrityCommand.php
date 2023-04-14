@@ -14,11 +14,11 @@ class IntegrityCommand extends BaseCommand
 {
     private const VERDICT_TYPES = [
         'unknown' => '<fg=white>?</>',
-        'good' => '<fg=green>✓</>',
+        'match' => '<fg=green>✓</>',
         'mismatch' => '<fg=red>⨉</>'
     ];
 
-    private const OPTION_NAME_SKIP_GOOD = 'skip-good';
+    private const OPTION_NAME_SKIP_GOOD = 'skip-match';
 
     public function __construct(private readonly PackageSubmitter $integrity, string $name = null)
     {
@@ -30,14 +30,14 @@ class IntegrityCommand extends BaseCommand
         $this
             ->setName('integrity')
             ->setDescription('Checks composer integrity.')
-            ->addOption('skip-good', null, InputOption::VALUE_OPTIONAL);
+            ->addOption('skip-match', null, InputOption::VALUE_OPTIONAL);
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $verdicts = $this->integrity->getPackageVerdicts();
-        if ($input->hasOption('skip-good')) {
-            $verdicts = array_filter($verdicts, fn(PackageVerdict $verdict) => $verdict->verdict != 'good');
+        if ($input->hasOption('skip-match')) {
+            $verdicts = array_filter($verdicts, fn(PackageVerdict $verdict) => $verdict->verdict != 'match');
         }
 
         $table = new Table($output);
