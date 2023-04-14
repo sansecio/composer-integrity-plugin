@@ -52,7 +52,7 @@ class IntegrityCommand extends BaseCommand
                 $packageVerdict->percentage . '%'
             ], $verdicts));
 
-        foreach ([0, 4] as $centeredColumnId) {
+        foreach ([0, 5] as $centeredColumnId) {
             $table->setColumnStyle($centeredColumnId, (new TableStyle())->setPadType(STR_PAD_BOTH));
         }
         $table->render();
