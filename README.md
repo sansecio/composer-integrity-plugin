@@ -23,6 +23,8 @@ composer require --dev sansec/composer-integrity-plugin
 composer integrity
 ```
 
+You can pass the `--skip-match` flag to only show non-matching checksums.
+
 # Caveats
 
 The plugin does not consider patches, such as those applied through [composer-patches](https://github.com/cweagans/composer-patches), via a `post-install-cmd` composer script, or editing in `vendor` outright.
