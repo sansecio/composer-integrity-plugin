@@ -33,6 +33,15 @@ class IntegrityCommand extends BaseCommand
             ->addOption(self::OPTION_NAME_SKIP_MATCH, null, InputOption::VALUE_OPTIONAL, 'Skip matching checksums.', false);
     }
 
+    private function getPercentage(PackageVerdict $packageVerdict): string
+    {
+        if ($packageVerdict->verdict == 'unknown') {
+            return '-';
+        }
+
+        return $packageVerdict->percentage . '%';
+    }
+
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $verdicts = $this->submitter->getPackageVerdicts($output);
@@ -50,7 +59,7 @@ class IntegrityCommand extends BaseCommand
                 $packageVerdict->version,
                 $packageVerdict->id,
                 $packageVerdict->checksum,
-                $packageVerdict->percentage . '%'
+                $this->getPercentage($packageVerdict)
             ], $verdicts));
 
         foreach ([0, 5] as $centeredColumnId) {
