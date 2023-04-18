@@ -4,7 +4,7 @@
   "license": "MIT",
   "require": {
     "composer-plugin-api": "^2.0",
-    "guzzlehttp/guzzle": "^7.5",
+    "guzzlehttp/guzzle": ">=6.0",
     "php": ">=8.1"
   },
   "require-dev": {
