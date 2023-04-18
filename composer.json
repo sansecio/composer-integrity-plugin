@@ -1,6 +1,7 @@
 {
   "name": "sansec/composer-integrity-plugin",
   "type": "composer-plugin",
+  "license": "MIT",
   "require": {
     "composer-plugin-api": "^2.0",
     "guzzlehttp/guzzle": "^7.5",
