@@ -7,7 +7,7 @@ This plugin calculates a [one-way hash](https://github.com/Cyan4973/xxHash) of:
 - package name and package versions
 - file contents of the installed packages (checksum)
 
-These hashes are then tested against a larger database hosted at Sansec. Because only the hashes are used, no sensitive data or contents of files is collected.
+These hashes are then tested against a larger database hosted at Sansec. The use of one-way hasing provides a secure way to test your setup, without sharing file contents with a third party. The Sansec API does not store your hashes. 
 
 ## Installation
 
