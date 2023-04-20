@@ -1,15 +1,13 @@
 # Composer Integrity Plugin
 
-A composer plugin that checks your installed composer packages against a list of known correct checksums.
+Check your installed composer packages against a list of known correct checksums (provided by Sansec).
 
-The hashing algorithm being used is [xxhash64](https://github.com/Cyan4973/xxHash).
+This plugin calculates a [one-way hash](https://github.com/Cyan4973/xxHash) of:
+- composer.json and composer.lock
+- package name and package versions
+- file contents of the installed packages (checksum)
 
-We collect the following data:
-- A unique installation hash based on composer.json and composer.lock
-- Hashes based on package name and package version.
-- Hashes based on the contents of the installed packages (checksum).
-
-These hashes are then compared against a larger database.  No sensitive data or contents of files is collected.
+These hashes are then tested against a larger database hosted at Sansec. Because only the hashes are used, no sensitive data or contents of files is collected.
 
 ## Installation
 
@@ -24,6 +22,12 @@ composer integrity
 ```
 
 You can pass the `--skip-match` flag to only show non-matching checksums.
+
+# Why did we make this?
+
+Sansec specializes in forensic investigations of breached Magento stores. We noticed an increase of cases where malware was hidden in legitimate libraries under `vendor`. Most package managers provide some sort of integrity check for installed software, but composer does not. So, we made this plugin in order to quickly verify the integrity of an installation. 
+
+Alternatively, you could clone the composer files, recreate vendor and run a diff against your installation. But this takes much more time and original dependencies are not always available on production servers. 
 
 # Caveats
 
