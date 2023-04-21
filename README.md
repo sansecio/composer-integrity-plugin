@@ -21,6 +21,9 @@ composer require --dev sansec/composer-integrity-plugin
 composer integrity
 ```
 
+![image](https://user-images.githubusercontent.com/1145479/233590606-824ae163-19a1-4871-9387-5ce402634150.png)
+
+
 You can pass the `--skip-match` flag to only show non-matching checksums.
 
 # Why did we make this?
