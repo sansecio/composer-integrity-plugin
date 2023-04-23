@@ -47,53 +47,67 @@ class IntegrityCommand extends BaseCommand
         return $packageVerdict->percentage . '%';
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output)
+    private function getAppliedPatches(): array
     {
         try {
             $command = $this->getApplication()->find('patch:list');
             $bufferedOutput = new BufferedOutput();
-            $rawJson = $command->run(new ArrayInput(['--json' => true, '--status' => 'applied']), $bufferedOutput);
-            $appliedPatches = array_keys(json_decode($bufferedOutput->fetch(), true));
+            $command->run(new ArrayInput(['--json' => true, '--status' => 'applied']), $bufferedOutput);
+            return array_keys(json_decode($bufferedOutput->fetch(), true));
         } catch (\Exception $e) {
-            $appliedPatches = [];
+            return [];
         }
+    }
 
+    private function renderIntegrityTable(OutputInterface $output, array $headers, array $rows): void
+    {
+        $table = (new Table($output))->setHeaders($headers)->setRows($rows);
+        foreach ([0, 5, 6] as $centeredColumnId) {
+            $table->setColumnStyle($centeredColumnId, (new TableStyle())->setPadType(STR_PAD_BOTH));
+        }
+        $table->render();
+    }
+
+    private function hasMismatchingVerdicts(array $verdicts): bool
+    {
+        return count(array_filter($verdicts, fn (PackageVerdict $verdict) => $verdict->verdict == 'mismatch')) > 0;
+    }
+
+    private function getRowsFromVerdicts(array $verdicts, bool $json): array
+    {
+        $appliedPatches = $this->getAppliedPatches();
+
+        return array_map(fn (PackageVerdict $packageVerdict) => [
+            'status' => $json ? $packageVerdict->verdict : self::VERDICT_TYPES[$packageVerdict->verdict],
+            'package' => $packageVerdict->name,
+            'version' => $packageVerdict->version,
+            'package_id' => $packageVerdict->id,
+            'checksum' => $packageVerdict->checksum,
+            'percentage' => $json ? (float) $packageVerdict->percentage : $this->getPercentage($packageVerdict),
+            'patch_applied' => $json ? in_array($packageVerdict->name, $appliedPatches) : (in_array($packageVerdict->name, $appliedPatches) ? 'Yes' : 'No')
+        ], $verdicts);
+    }
+
+    protected function execute(InputInterface $input, OutputInterface $output)
+    {
         $verdicts = $this->submitter->getPackageVerdicts($output);
 
         if ($input->getOption(self::OPTION_NAME_SKIP_MATCH) !== false) {
             $verdicts = array_filter($verdicts, fn (PackageVerdict $verdict) => $verdict->verdict != 'match');
         }
 
-        $json = $input->getOption(self::OPTION_NAME_JSON);
-
-        $headers = ['Status', 'Package', 'Version', 'Package ID', 'Checksum', 'Percentage', 'Patch applied?'];
-
-        $rows = array_map(fn (PackageVerdict $packageVerdict) => [
-            'status' => $json ? $packageVerdict->verdict : self::VERDICT_TYPES[$packageVerdict->verdict],
-            'package' => $packageVerdict->name,
-            'version' => $packageVerdict->version,
-            'package_id' => $packageVerdict->id,
-            'checksum' => $packageVerdict->checksum,
-            'percentage' => $json ? $packageVerdict->percentage : $this->getPercentage($packageVerdict),
-            'patch_applied' => $json ? in_array($packageVerdict->name, $appliedPatches) : (in_array($packageVerdict->name, $appliedPatches) ? 'Yes' : 'No')
-        ], $verdicts);
-
+        $json = (bool) $input->getOption(self::OPTION_NAME_JSON);
+        $rows = $this->getRowsFromVerdicts($verdicts, $json);
         if ($json) {
             echo json_encode($rows, JSON_PRETTY_PRINT);
         } else {
-            $table = new Table($output);
-            $table
-                ->setHeaders($headers)
-                ->setRows($rows);
-
-            foreach ([0, 5] as $centeredColumnId) {
-                $table->setColumnStyle($centeredColumnId, (new TableStyle())->setPadType(STR_PAD_BOTH));
-            }
-            $table->render();
+            $this->renderIntegrityTable(
+                $output,
+                ['Status', 'Package', 'Version', 'Package ID', 'Checksum', 'Percentage', 'Patch applied?'],
+                $rows
+            );
         }
 
-        $mismatching = array_filter($verdicts, fn (PackageVerdict $verdict) => $verdict->verdict == 'mismatch');
-
-        return count($mismatching) > 0 ? Command::FAILURE : Command::SUCCESS;
+        return $this->hasMismatchingVerdicts($verdicts) ? Command::FAILURE : Command::SUCCESS;
     }
 }
