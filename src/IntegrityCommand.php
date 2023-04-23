@@ -20,6 +20,8 @@ class IntegrityCommand extends BaseCommand
 
     private const OPTION_NAME_SKIP_MATCH = 'skip-match';
 
+    private const OPTION_NAME_JSON = 'json';
+
     public function __construct(private readonly PackageSubmitter $submitter, string $name = null)
     {
         parent::__construct($name);
@@ -30,6 +32,7 @@ class IntegrityCommand extends BaseCommand
         $this
             ->setName('integrity')
             ->setDescription('Checks composer integrity.')
+            ->addOption(self::OPTION_NAME_JSON, null, InputOption::VALUE_NONE, 'Show output in JSON format')
             ->addOption(self::OPTION_NAME_SKIP_MATCH, null, InputOption::VALUE_OPTIONAL, 'Skip matching checksums.', false);
     }
 
@@ -50,22 +53,32 @@ class IntegrityCommand extends BaseCommand
             $verdicts = array_filter($verdicts, fn (PackageVerdict $verdict) => $verdict->verdict != 'match');
         }
 
-        $table = new Table($output);
-        $table
-            ->setHeaders(['Status', 'Package', 'Version', 'Package ID', 'Checksum', 'Percentage'])
-            ->setRows(array_map(fn (PackageVerdict $packageVerdict) => [
-                self::VERDICT_TYPES[$packageVerdict->verdict],
-                $packageVerdict->name,
-                $packageVerdict->version,
-                $packageVerdict->id,
-                $packageVerdict->checksum,
-                $this->getPercentage($packageVerdict)
-            ], $verdicts));
+        $json = $input->getOption(self::OPTION_NAME_JSON);
 
-        foreach ([0, 5] as $centeredColumnId) {
-            $table->setColumnStyle($centeredColumnId, (new TableStyle())->setPadType(STR_PAD_BOTH));
+        $headers = ['Status', 'Package', 'Version', 'Package ID', 'Checksum', 'Percentage'];
+
+        $rows = array_map(fn (PackageVerdict $packageVerdict) => [
+            'status' => $json ? $packageVerdict->verdict : self::VERDICT_TYPES[$packageVerdict->verdict],
+            'package' => $packageVerdict->name,
+            'version' => $packageVerdict->version,
+            'package_id' => $packageVerdict->id,
+            'checksum' => $packageVerdict->checksum,
+            'percentage' => $json ? $packageVerdict->percentage : $this->getPercentage($packageVerdict)
+        ], $verdicts);
+
+        if ($json) {
+            echo json_encode($rows, JSON_PRETTY_PRINT);
+        } else {
+            $table = new Table($output);
+            $table
+                ->setHeaders($headers)
+                ->setRows($rows);
+
+            foreach ([0, 5] as $centeredColumnId) {
+                $table->setColumnStyle($centeredColumnId, (new TableStyle())->setPadType(STR_PAD_BOTH));
+            }
+            $table->render();
         }
-        $table->render();
 
         $mismatching = array_filter($verdicts, fn (PackageVerdict $verdict) => $verdict->verdict == 'mismatch');
 
