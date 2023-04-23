@@ -6,8 +6,10 @@ use Composer\Command\BaseCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Helper\TableStyle;
+use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Console\Output\BufferedOutput;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class IntegrityCommand extends BaseCommand
@@ -47,6 +49,15 @@ class IntegrityCommand extends BaseCommand
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
+        try {
+            $command = $this->getApplication()->find('patch:list');
+            $bufferedOutput = new BufferedOutput();
+            $rawJson = $command->run(new ArrayInput(['--json' => true, '--status' => 'applied']), $bufferedOutput);
+            $appliedPatches = array_keys(json_decode($bufferedOutput->fetch(), true));
+        } catch (\Exception $e) {
+            $appliedPatches = [];
+        }
+
         $verdicts = $this->submitter->getPackageVerdicts($output);
 
         if ($input->getOption(self::OPTION_NAME_SKIP_MATCH) !== false) {
@@ -55,7 +66,7 @@ class IntegrityCommand extends BaseCommand
 
         $json = $input->getOption(self::OPTION_NAME_JSON);
 
-        $headers = ['Status', 'Package', 'Version', 'Package ID', 'Checksum', 'Percentage'];
+        $headers = ['Status', 'Package', 'Version', 'Package ID', 'Checksum', 'Percentage', 'Patch applied?'];
 
         $rows = array_map(fn (PackageVerdict $packageVerdict) => [
             'status' => $json ? $packageVerdict->verdict : self::VERDICT_TYPES[$packageVerdict->verdict],
@@ -63,7 +74,8 @@ class IntegrityCommand extends BaseCommand
             'version' => $packageVerdict->version,
             'package_id' => $packageVerdict->id,
             'checksum' => $packageVerdict->checksum,
-            'percentage' => $json ? $packageVerdict->percentage : $this->getPercentage($packageVerdict)
+            'percentage' => $json ? $packageVerdict->percentage : $this->getPercentage($packageVerdict),
+            'patch_applied' => $json ? in_array($packageVerdict->name, $appliedPatches) : (in_array($packageVerdict->name, $appliedPatches) ? 'Yes' : 'No')
         ], $verdicts);
 
         if ($json) {
