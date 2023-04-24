@@ -4,6 +4,7 @@ namespace Sansec\Integrity;
 
 use Composer\Command\BaseCommand;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Exception\NamespaceNotFoundException;
 use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Helper\TableStyle;
 use Symfony\Component\Console\Input\ArrayInput;
@@ -19,6 +20,8 @@ class IntegrityCommand extends BaseCommand
         'match' => '<fg=green>✓</>',
         'mismatch' => '<fg=red>⨉</>'
     ];
+
+    private array $appliedPatches = [];
 
     private const OPTION_NAME_SKIP_MATCH = 'skip-match';
 
@@ -50,10 +53,20 @@ class IntegrityCommand extends BaseCommand
     private function getAppliedPatches(): array
     {
         try {
+            // vaimo/composer-patches
             $command = $this->getApplication()->find('patch:list');
             $bufferedOutput = new BufferedOutput();
             $command->run(new ArrayInput(['--json' => true, '--status' => 'applied']), $bufferedOutput);
             return array_keys(json_decode($bufferedOutput->fetch(), true));
+        } catch (NamespaceNotFoundException $e) {
+            // cweagans/composer-patches
+            if (class_exists(cweagans\Composer\Patches::class)) {
+                $cweagansComposerPatches = new \cweagans\Composer\Patches();
+                $cweagansComposerPatches->activate($this->tryComposer(), $this->getIO());
+                return array_keys($cweagansComposerPatches->grabPatches());
+            } else {
+                throw new \Exception('cweagans/composer-patches not found');
+            }
         } catch (\Exception $e) {
             return [];
         }
@@ -75,17 +88,26 @@ class IntegrityCommand extends BaseCommand
 
     private function getRowsFromVerdicts(array $verdicts, bool $json): array
     {
-        $appliedPatches = $this->getAppliedPatches();
+        $this->appliedPatches = $this->getAppliedPatches();
 
-        return array_map(fn (PackageVerdict $packageVerdict) => [
+        $rows = array_map(fn (PackageVerdict $packageVerdict) => [
             'status' => $json ? $packageVerdict->verdict : self::VERDICT_TYPES[$packageVerdict->verdict],
             'package' => $packageVerdict->name,
             'version' => $packageVerdict->version,
             'package_id' => $packageVerdict->id,
             'checksum' => $packageVerdict->checksum,
             'percentage' => $json ? (float) $packageVerdict->percentage : $this->getPercentage($packageVerdict),
-            'patch_applied' => $json ? in_array($packageVerdict->name, $appliedPatches) : (in_array($packageVerdict->name, $appliedPatches) ? 'Yes' : 'No')
+            'patch_applied' => $json ? in_array($packageVerdict->name, $this->appliedPatches) : (in_array($packageVerdict->name, $this->appliedPatches) ? 'Yes' : 'No')
         ], $verdicts);
+
+        if (!count($this->appliedPatches)) {
+            $rows = array_map(function ($row) {
+                unset($row['patch_applied']);
+                return $row;
+            }, $rows);
+        }
+
+        return $rows;
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
@@ -98,12 +120,26 @@ class IntegrityCommand extends BaseCommand
 
         $json = (bool) $input->getOption(self::OPTION_NAME_JSON);
         $rows = $this->getRowsFromVerdicts($verdicts, $json);
+
         if ($json) {
             echo json_encode($rows, JSON_PRETTY_PRINT);
         } else {
+            $headers = [
+                'Status',
+                'Package',
+                'Version',
+                'Package ID',
+                'Checksum',
+                'Percentage',
+            ];
+
+            if (count($this->appliedPatches)) {
+                $headers[] = 'Patch applied?';
+            }
+
             $this->renderIntegrityTable(
                 $output,
-                ['Status', 'Package', 'Version', 'Package ID', 'Checksum', 'Percentage', 'Patch applied?'],
+                $headers,
                 $rows
             );
         }
