@@ -65,8 +65,10 @@ class IntegrityCommand extends BaseCommand
                 $cweagansComposerPatches->activate($this->tryComposer(), $this->getIO());
                 return array_keys($cweagansComposerPatches->grabPatches());
             } else {
-                return [];
+                throw new \Exception('cweagans/composer-patches not found');
             }
+        } catch (\Exception $e) {
+            return [];
         }
     }
 
