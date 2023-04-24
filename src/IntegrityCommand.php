@@ -4,6 +4,7 @@ namespace Sansec\Integrity;
 
 use Composer\Command\BaseCommand;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Exception\NamespaceNotFoundException;
 use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Helper\TableStyle;
 use Symfony\Component\Console\Input\ArrayInput;
@@ -52,12 +53,20 @@ class IntegrityCommand extends BaseCommand
     private function getAppliedPatches(): array
     {
         try {
+            // vaimo/composer-patches
             $command = $this->getApplication()->find('patch:list');
             $bufferedOutput = new BufferedOutput();
             $command->run(new ArrayInput(['--json' => true, '--status' => 'applied']), $bufferedOutput);
             return array_keys(json_decode($bufferedOutput->fetch(), true));
-        } catch (\Exception $e) {
-            return [];
+        } catch (NamespaceNotFoundException $e) {
+            // cweagans/composer-patches
+            if (class_exists(cweagans\Composer\Patches::class)) {
+                $cweagansComposerPatches = new \cweagans\Composer\Patches();
+                $cweagansComposerPatches->activate($this->tryComposer(), $this->getIO());
+                return array_keys($cweagansComposerPatches->grabPatches());
+            } else {
+                return [];
+            }
         }
     }
 
