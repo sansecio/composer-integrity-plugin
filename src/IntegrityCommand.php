@@ -20,6 +20,8 @@ class IntegrityCommand extends BaseCommand
         'mismatch' => '<fg=red>⨉</>'
     ];
 
+    private array $appliedPatches = [];
+
     private const OPTION_NAME_SKIP_MATCH = 'skip-match';
 
     private const OPTION_NAME_JSON = 'json';
@@ -75,17 +77,26 @@ class IntegrityCommand extends BaseCommand
 
     private function getRowsFromVerdicts(array $verdicts, bool $json): array
     {
-        $appliedPatches = $this->getAppliedPatches();
+        $this->appliedPatches = $this->getAppliedPatches();
 
-        return array_map(fn (PackageVerdict $packageVerdict) => [
+        $rows = array_map(fn (PackageVerdict $packageVerdict) => [
             'status' => $json ? $packageVerdict->verdict : self::VERDICT_TYPES[$packageVerdict->verdict],
             'package' => $packageVerdict->name,
             'version' => $packageVerdict->version,
             'package_id' => $packageVerdict->id,
             'checksum' => $packageVerdict->checksum,
             'percentage' => $json ? (float) $packageVerdict->percentage : $this->getPercentage($packageVerdict),
-            'patch_applied' => $json ? in_array($packageVerdict->name, $appliedPatches) : (in_array($packageVerdict->name, $appliedPatches) ? 'Yes' : 'No')
+            'patch_applied' => $json ? in_array($packageVerdict->name, $this->appliedPatches) : (in_array($packageVerdict->name, $this->appliedPatches) ? 'Yes' : 'No')
         ], $verdicts);
+
+        if (!count($this->appliedPatches)) {
+            $rows = array_map(function ($row) {
+                unset($row['patch_applied']);
+                return $row;
+            }, $rows);
+        }
+
+        return $rows;
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
@@ -98,12 +109,26 @@ class IntegrityCommand extends BaseCommand
 
         $json = (bool) $input->getOption(self::OPTION_NAME_JSON);
         $rows = $this->getRowsFromVerdicts($verdicts, $json);
+
         if ($json) {
             echo json_encode($rows, JSON_PRETTY_PRINT);
         } else {
+            $headers = [
+                'Status',
+                'Package',
+                'Version',
+                'Package ID',
+                'Checksum',
+                'Percentage',
+            ];
+
+            if (count($this->appliedPatches)) {
+                $headers[] = 'Patch applied?';
+            }
+
             $this->renderIntegrityTable(
                 $output,
-                ['Status', 'Package', 'Version', 'Package ID', 'Checksum', 'Percentage', 'Patch applied?'],
+                $headers,
                 $rows
             );
         }
