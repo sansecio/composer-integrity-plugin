@@ -22,7 +22,7 @@ class PatchDetector
     ) {
     }
 
-    private function getPatchPlugin(): ?PatchPluginInterface
+    private function getPatchPlugin(): ?PatchPlugin
     {
         $composerPackages = $this->composer->getRepositoryManager()->getLocalRepository()->getPackages();
         foreach ($composerPackages as $package) {

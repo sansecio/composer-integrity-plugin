@@ -2,7 +2,7 @@
 
 namespace Sansec\Integrity;
 
-interface PatchPluginInterface
+interface PatchPlugin
 {
     public function getPatchedPackages(): array;
 }

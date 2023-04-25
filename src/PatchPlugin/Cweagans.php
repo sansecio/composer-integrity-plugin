@@ -4,10 +4,10 @@ namespace Sansec\Integrity\PatchPlugin;
 
 use Composer\Composer;
 use Composer\IO\BufferIO;
-use Sansec\Integrity\PatchPluginInterface;
+use Sansec\Integrity\PatchPlugin;
 use cweagans\Composer\Patches;
 
-class Cweagans implements PatchPluginInterface
+class Cweagans implements PatchPlugin
 {
     public function __construct(
         private readonly Composer $composer,

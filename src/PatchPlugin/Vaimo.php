@@ -4,11 +4,11 @@ namespace Sansec\Integrity\PatchPlugin;
 
 use Composer\Console\Application;
 use DI\Container;
-use Sansec\Integrity\PatchPluginInterface;
+use Sansec\Integrity\PatchPlugin;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\BufferedOutput;
 
-class Vaimo implements PatchPluginInterface
+class Vaimo implements PatchPlugin
 {
     public function __construct(
         private readonly Application $application,

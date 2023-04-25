@@ -7,20 +7,12 @@ use Composer\Composer;
 use DI\Container;
 use Sansec\Integrity\PackageResolver\ComposerStrategy;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Helper\Table;
-use Symfony\Component\Console\Helper\TableStyle;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class IntegrityCommand extends BaseCommand
 {
-    private const VERDICT_TYPES = [
-        'unknown' => '<fg=white>?</>',
-        'match' => '<fg=green>✓</>',
-        'mismatch' => '<fg=red>⨉</>'
-    ];
-
     private const OPTION_NAME_SKIP_MATCH = 'skip-match';
     private const OPTION_NAME_JSON = 'json';
 
@@ -75,74 +67,40 @@ class IntegrityCommand extends BaseCommand
         return $this->patchDetector;
     }
 
-    private function getPercentage(PackageVerdict $packageVerdict): string
-    {
-        if ($packageVerdict->verdict == 'unknown') {
-            return '-';
-        }
-
-        return $packageVerdict->percentage . '%';
-    }
-
-    private function renderIntegrityTable(OutputInterface $output, array $headers, array $rows): void
-    {
-        $table = (new Table($output))->setHeaders($headers)->setRows($rows);
-        foreach ([0, 5, 6] as $centeredColumnId) {
-            $table->setColumnStyle($centeredColumnId, (new TableStyle())->setPadType(STR_PAD_BOTH));
-        }
-        $table->render();
-    }
-
     private function hasMismatchingVerdicts(array $verdicts): bool
     {
         return count(array_filter($verdicts, fn (PackageVerdict $verdict) => $verdict->verdict == 'mismatch')) > 0;
     }
 
-    private function getRowsFromVerdicts(array $verdicts, bool $json): array
-    {
-        $hasPatchPlugin = $this->getPatchDetector()->hasPatchPlugin();
-        $patchedPackages = $this->getPatchDetector()->getPatchedPackages();
-
-        return array_map(function (PackageVerdict $packageVerdict) use ($json, $hasPatchPlugin, $patchedPackages) {
-            $row = [
-                'status' => $json ? $packageVerdict->verdict : self::VERDICT_TYPES[$packageVerdict->verdict],
-                'package' => $packageVerdict->name,
-                'version' => $packageVerdict->version,
-                'package_id' => $packageVerdict->id,
-                'checksum' => $packageVerdict->checksum,
-                'percentage' => $json ? (float) $packageVerdict->percentage : $this->getPercentage($packageVerdict)
-            ];
-
-            if ($hasPatchPlugin) {
-                $patchApplied = in_array($packageVerdict->name, $patchedPackages);
-                $row['patch_applied'] = $json ? $patchApplied : ($patchApplied ? 'Yes' : 'No');
-            }
-
-            return $row;
-        }, $verdicts);
-    }
-
-    private function getRowHeaders(): array
-    {
-        $headers = [
-            'Status',
-            'Package',
-            'Version',
-            'Package ID',
-            'Checksum',
-            'Percentage',
-        ];
-
-        if ($this->getPatchDetector()->hasPatchPlugin()) {
-            $headers[] = 'Patch applied?';
-        }
-
-        return $headers;
-    }
 
     private function filterMatchVerdicts(array $verdicts): array
     {
         return array_filter($verdicts, fn (PackageVerdict $verdict) => $verdict->verdict != 'match');
+    }
+
+    private function getRendererOptions(bool $json): array
+    {
+        $hasPatchPlugin = $this->getPatchDetector()->hasPatchPlugin();
+        $patchedPackages = $this->getPatchDetector()->getPatchedPackages();
+
+        $options = ['json' => $json];
+        if ($hasPatchPlugin) {
+            $options['additionalColumns'] = ['Patched'];
+            $options['verdictEnricher'] = new class($options['json'], $patchedPackages) implements VerdictEnricher
+            {
+                public function __construct(private readonly bool $json, private readonly array $patchedPackages)
+                {
+                }
+
+                public function enrich(PackageVerdict $packageVerdict): array
+                {
+                    $patchApplied = in_array($packageVerdict->name, $this->patchedPackages);
+                    return ['patch_applied' => $this->json ? $patchApplied : ($patchApplied ? 'Yes' : 'No')];
+                }
+            };
+        }
+
+        return $options;
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
@@ -153,14 +111,11 @@ class IntegrityCommand extends BaseCommand
             $verdicts = $this->filterMatchVerdicts($verdicts);
         }
 
-        $json = (bool) $input->getOption(self::OPTION_NAME_JSON);
-        $rows = $this->getRowsFromVerdicts($verdicts, $json);
-
-        if ($json) {
-            echo json_encode($rows, JSON_PRETTY_PRINT);
-        } else {
-            $this->renderIntegrityTable($output, $this->getRowHeaders(), $rows);
-        }
+        $verdictRenderer = $this->container->make(
+            VerdictRenderer::class,
+            $this->getRendererOptions((bool) $input->getOption(self::OPTION_NAME_JSON))
+        );
+        $verdictRenderer->render($output, $verdicts);
 
         return $this->hasMismatchingVerdicts($verdicts) ? Command::FAILURE : Command::SUCCESS;
     }
