@@ -5,7 +5,8 @@
   "require": {
     "composer-plugin-api": "^2.0",
     "guzzlehttp/guzzle": ">=6.0",
-    "php": ">=8.1"
+    "php": ">=8.1",
+    "php-di/php-di": "^7.0"
   },
   "require-dev": {
     "composer/composer": "^2.0"
