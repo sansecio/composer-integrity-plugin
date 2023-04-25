@@ -2,7 +2,6 @@
 
 namespace Sansec\Integrity;
 
-use Composer\Composer;
 use GuzzleHttp\Client;
 use GuzzleHttp\RequestOptions;
 use Symfony\Component\Console\Helper\ProgressBar;
@@ -13,20 +12,15 @@ class PackageSubmitter
     private const API_URL = 'https://api.sansec.io/v1/composer/integrity';
 
     public function __construct(
-        private readonly Composer $composer,
+        private readonly PackageResolverStrategy $packageResolverStrategy,
         private readonly Client $client,
         private readonly Hasher $hasher
     ) {
     }
 
-    private function getVendorDirectory(): string
-    {
-        return $this->composer->getConfig()->get('vendor-dir');
-    }
-
     private function getPackages(OutputInterface $output): array
     {
-        $composerPackages = $this->composer->getRepositoryManager()->getLocalRepository()->getPackages();
+        $composerPackages = $this->packageResolverStrategy->resolvePackages();
         $progressBar = new ProgressBar($output, count($composerPackages));
         $progressBar->setRedrawFrequency(1);
 
@@ -34,21 +28,13 @@ class PackageSubmitter
         foreach ($composerPackages as $package) {
             $progressBar->advance();
 
-            if ($package->getType() == 'metapackage') {
-                continue;
-            }
-
-            if (strpos($package->getVersion(), 'dev-') === 0) {
-                continue;
-            }
-
-            $packagePath = implode(DIRECTORY_SEPARATOR, [$this->getVendorDirectory(), $package->getName()]);
+            $packagePath = implode(DIRECTORY_SEPARATOR, [$this->packageResolverStrategy->resolveVendorPath(), $package->name]);
 
             $packages[] = [
-                'id'      => $this->hasher->generatePackageIdHash($package->getName(), $package->getPrettyVersion()),
+                'id'      => $this->hasher->generatePackageIdHash($package->name, $package->version),
                 'data'    => $this->hasher->generatePackageDataHash($packagePath),
-                'name'    => $package->getName(),
-                'version' => $package->getPrettyVersion()
+                'name'    => $package->name,
+                'version' => $package->version
             ];
         }
 

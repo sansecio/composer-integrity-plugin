@@ -5,6 +5,7 @@ namespace Sansec\Integrity;
 use Composer\Command\BaseCommand;
 use Composer\Composer;
 use DI\Container;
+use Sansec\Integrity\PackageResolver\ComposerStrategy;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Helper\TableStyle;
@@ -23,7 +24,7 @@ class IntegrityCommand extends BaseCommand
     private const OPTION_NAME_SKIP_MATCH = 'skip-match';
     private const OPTION_NAME_JSON = 'json';
 
-    private readonly PackageSubmitter $submitter;
+    private ?PackageSubmitter $packageSubmitter = null;
     private ?PatchDetector $patchDetector = null;
 
     public function __construct(
@@ -32,7 +33,6 @@ class IntegrityCommand extends BaseCommand
         string $name = null
     ) {
         parent::__construct($name);
-        $this->submitter = $container->make(PackageSubmitter::class, ['composer' => $composer]);
     }
 
     protected function configure()
@@ -42,6 +42,22 @@ class IntegrityCommand extends BaseCommand
             ->setDescription('Checks composer integrity.')
             ->addOption(self::OPTION_NAME_JSON, null, InputOption::VALUE_NONE, 'Show output in JSON format')
             ->addOption(self::OPTION_NAME_SKIP_MATCH, null, InputOption::VALUE_OPTIONAL, 'Skip matching checksums.', false);
+    }
+
+    private function getPackageSubmitter(): PackageSubmitter
+    {
+        if ($this->packageSubmitter === null) {
+            $this->packageSubmitter = $this->container->make(
+                PackageSubmitter::class,
+                [
+                    'packageResolverStrategy' => $this->container->make(
+                        ComposerStrategy::class,
+                        ['composer' => $this->composer]
+                    )
+                ]
+            );
+        }
+        return $this->packageSubmitter;
     }
 
     private function getPatchDetector(): PatchDetector
@@ -131,7 +147,7 @@ class IntegrityCommand extends BaseCommand
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $verdicts = $this->submitter->getPackageVerdicts($output);
+        $verdicts = $this->getPackageSubmitter()->getPackageVerdicts($output);
 
         if ($input->getOption(self::OPTION_NAME_SKIP_MATCH) !== false) {
             $verdicts = $this->filterMatchVerdicts($verdicts);
