@@ -3,6 +3,8 @@
 namespace Sansec\Integrity;
 
 use Composer\Composer;
+use Composer\Console\Application;
+use DI\Container;
 use Sansec\Integrity\PatchPlugin\Cweagans;
 use Sansec\Integrity\PatchPlugin\Vaimo;
 
@@ -13,8 +15,11 @@ class PatchDetector
         'cweagans/composer-patches' => Cweagans::class,
     ];
 
-    public function __construct(private readonly Composer $composer)
-    {
+    public function __construct(
+        private readonly Container $container,
+        private readonly Composer $composer,
+        private readonly Application $application,
+    ) {
     }
 
     private function getPatchPlugin(): ?PatchPluginInterface
@@ -22,8 +27,13 @@ class PatchDetector
         $composerPackages = $this->composer->getRepositoryManager()->getLocalRepository()->getPackages();
         foreach ($composerPackages as $package) {
             if (in_array($package->getName(), array_keys(self::PATCH_PLUGIN_HANDLERS))) {
-                $handler = self::PATCH_PLUGIN_HANDLERS[$package->getName()];
-                return new $handler;
+                return $this->container->make(
+                    self::PATCH_PLUGIN_HANDLERS[$package->getName()],
+                    [
+                        'application' => $this->application,
+                        'composer' => $this->composer
+                    ]
+                );
             }
         }
         return null;
