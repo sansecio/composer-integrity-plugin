@@ -23,7 +23,7 @@ class IntegrityCommand extends BaseCommand
     private const OPTION_NAME_SKIP_MATCH = 'skip-match';
     private const OPTION_NAME_JSON = 'json';
 
-    private PackageSubmitter $submitter;
+    private readonly PackageSubmitter $submitter;
     private ?PatchDetector $patchDetector = null;
 
     public function __construct(
@@ -46,6 +46,7 @@ class IntegrityCommand extends BaseCommand
 
     private function getPatchDetector(): PatchDetector
     {
+        // We must use a getter because the application object is not known to us during construction
         if ($this->patchDetector === null) {
             $this->patchDetector = $this->container->make(
                 PatchDetector::class,
