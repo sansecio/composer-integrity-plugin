@@ -9,22 +9,36 @@ This plugin calculates a [one-way hash](https://github.com/Cyan4973/xxHash) of:
 
 These hashes are then tested against a larger database hosted at Sansec. The use of one-way hasing provides a secure way to test your setup, without sharing file contents with a third party. The Sansec API does not store your hashes. 
 
-## Installation
+![image](https://user-images.githubusercontent.com/1145479/233590606-824ae163-19a1-4871-9387-5ce402634150.png)
+
+## Installation & Usage
+
+## Composer Plugin
 
 ```bash
-composer require --dev sansec/composer-integrity-plugin
+composer require sansec/composer-integrity-plugin
 ```
 
-## Usage
-
+You can then run it:
 ```bash
 composer integrity
 ```
 
-![image](https://user-images.githubusercontent.com/1145479/233590606-824ae163-19a1-4871-9387-5ce402634150.png)
+## PHAR
 
+Head over to the [releases](https://github.com/sansecio/composer-integrity-plugin/releases) page and download the latest PHAR.
 
-You can pass the `--skip-match` flag to only show non-matching checksums.
+You can then run it:
+```bash
+php composer-integrity.phar
+```
+
+## Configuration
+
+Both the plugin as well as the PHAR take the following optional options:
+
+- `--skip-match`: shows only non-matching checksums
+- `--json`: output is in json format instead of a table
 
 # Why did we make this?
 
