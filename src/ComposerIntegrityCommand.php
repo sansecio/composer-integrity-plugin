@@ -5,13 +5,12 @@ namespace Sansec\Integrity;
 use Composer\Command\BaseCommand;
 use Composer\Composer;
 use DI\Container;
-use Sansec\Integrity\PackageResolver\ComposerStrategy;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
-class IntegrityCommand extends BaseCommand
+class ComposerIntegrityCommand extends BaseCommand
 {
     private const OPTION_NAME_SKIP_MATCH = 'skip-match';
     private const OPTION_NAME_JSON = 'json';
@@ -22,6 +21,7 @@ class IntegrityCommand extends BaseCommand
     public function __construct(
         private readonly Container $container,
         private readonly Composer $composer,
+        private readonly PackageResolverStrategy $packageResolverStrategy,
         string $name = null
     ) {
         parent::__construct($name);
@@ -41,12 +41,7 @@ class IntegrityCommand extends BaseCommand
         if ($this->packageSubmitter === null) {
             $this->packageSubmitter = $this->container->make(
                 PackageSubmitter::class,
-                [
-                    'packageResolverStrategy' => $this->container->make(
-                        ComposerStrategy::class,
-                        ['composer' => $this->composer]
-                    )
-                ]
+                ['packageResolverStrategy' => $this->packageResolverStrategy]
             );
         }
         return $this->packageSubmitter;
