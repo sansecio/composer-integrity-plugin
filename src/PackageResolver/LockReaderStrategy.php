@@ -12,6 +12,11 @@ class LockReaderStrategy implements PackageResolverStrategy
     {
     }
 
+    public function resolveRootPath(): string
+    {
+        return $this->rootDirectory;
+    }
+
     public function resolveVendorPath(): string
     {
         return implode(DIRECTORY_SEPARATOR, [$this->rootDirectory, 'vendor']);

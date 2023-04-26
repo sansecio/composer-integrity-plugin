@@ -46,7 +46,9 @@ class PackageSubmitter
     private function getVendorState(array $packages): array
     {
         return [
-            'id'        => $this->hasher->generateInstallIdHash(getcwd()),
+            'id'        => $this->hasher->generateInstallIdHash(
+                $this->packageResolverStrategy->resolveRootPath()
+            ),
             'hash_type' => 0, // xxh64
             'origin'    => 1,
             'pkg'       => array_map(

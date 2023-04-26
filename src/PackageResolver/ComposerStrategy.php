@@ -29,6 +29,11 @@ class ComposerStrategy implements PackageResolverStrategy
         return $packages;
     }
 
+    public function resolveRootPath(): string
+    {
+        return \dirname($this->resolveVendorPath());
+    }
+
     public function resolveVendorPath(): string
     {
         return $this->composer->getConfig()->get('vendor-dir');
