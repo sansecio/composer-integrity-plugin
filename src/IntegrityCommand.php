@@ -3,9 +3,7 @@
 namespace Sansec\Integrity;
 
 use Composer\Command\BaseCommand;
-use Composer\Composer;
 use DI\Container;
-use Sansec\Integrity\PackageResolver\ComposerStrategy;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -17,11 +15,10 @@ class IntegrityCommand extends BaseCommand
     private const OPTION_NAME_JSON = 'json';
 
     private ?PackageSubmitter $packageSubmitter = null;
-    private ?PatchDetector $patchDetector = null;
 
     public function __construct(
         private readonly Container $container,
-        private readonly Composer $composer,
+        private readonly PackageResolverStrategy $packageResolverStrategy,
         string $name = null
     ) {
         parent::__construct($name);
@@ -41,30 +38,10 @@ class IntegrityCommand extends BaseCommand
         if ($this->packageSubmitter === null) {
             $this->packageSubmitter = $this->container->make(
                 PackageSubmitter::class,
-                [
-                    'packageResolverStrategy' => $this->container->make(
-                        ComposerStrategy::class,
-                        ['composer' => $this->composer]
-                    )
-                ]
+                ['packageResolverStrategy' => $this->packageResolverStrategy]
             );
         }
         return $this->packageSubmitter;
-    }
-
-    private function getPatchDetector(): PatchDetector
-    {
-        // We must use a getter because the application object is not known to us during construction
-        if ($this->patchDetector === null) {
-            $this->patchDetector = $this->container->make(
-                PatchDetector::class,
-                [
-                    'composer' => $this->composer,
-                    'application' => $this->getApplication()
-                ]
-            );
-        }
-        return $this->patchDetector;
     }
 
     private function hasMismatchingVerdicts(array $verdicts): bool
@@ -78,29 +55,9 @@ class IntegrityCommand extends BaseCommand
         return array_filter($verdicts, fn (PackageVerdict $verdict) => $verdict->verdict != 'match');
     }
 
-    private function getRendererOptions(bool $json): array
+    protected function getRendererOptions(bool $json): array
     {
-        $hasPatchPlugin = $this->getPatchDetector()->hasPatchPlugin();
-        $patchedPackages = $this->getPatchDetector()->getPatchedPackages();
-
-        $options = ['json' => $json];
-        if ($hasPatchPlugin) {
-            $options['additionalColumns'] = ['Patched'];
-            $options['verdictEnricher'] = new class($options['json'], $patchedPackages) implements VerdictEnricher
-            {
-                public function __construct(private readonly bool $json, private readonly array $patchedPackages)
-                {
-                }
-
-                public function enrich(PackageVerdict $packageVerdict): array
-                {
-                    $patchApplied = in_array($packageVerdict->name, $this->patchedPackages);
-                    return ['patch_applied' => $this->json ? $patchApplied : ($patchApplied ? 'Yes' : 'No')];
-                }
-            };
-        }
-
-        return $options;
+        return ['json' => $json];
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)

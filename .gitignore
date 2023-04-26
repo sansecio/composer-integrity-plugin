@@ -2,3 +2,4 @@
 /vendor
 /test/vendor
 /test/composer.lock
+/composer-integrity.phar

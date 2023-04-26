@@ -4,6 +4,7 @@ namespace Sansec\Integrity;
 
 use Composer\Composer;
 use DI\Container;
+use Sansec\Integrity\PackageResolver\ComposerStrategy;
 
 class CommandProvider implements \Composer\Plugin\Capability\CommandProvider
 {
@@ -19,7 +20,16 @@ class CommandProvider implements \Composer\Plugin\Capability\CommandProvider
     public function getCommands()
     {
         return [
-            $this->container->make(IntegrityCommand::class, ['composer' => $this->composer])
+            $this->container->make(
+                ComposerIntegrityCommand::class,
+                [
+                    'composer' => $this->composer,
+                    'packageResolverStrategy' => $this->container->make(
+                        ComposerStrategy::class,
+                        ['composer' => $this->composer]
+                    )
+                ]
+            )
         ];
     }
 }
