@@ -11,7 +11,8 @@ use Sansec\Integrity\PatchPlugin\Vaimo;
 class PatchDetector
 {
     private const PATCH_PLUGIN_HANDLERS = [
-        'vaimo/composer-patches' => Vaimo::class,
+        // Disabled pending: https://github.com/vaimo/composer-patches/pull/108
+        // 'vaimo/composer-patches' => Vaimo::class,
         'cweagans/composer-patches' => Cweagans::class,
     ];
 
