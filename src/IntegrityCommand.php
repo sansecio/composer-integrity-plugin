@@ -14,7 +14,7 @@ class IntegrityCommand extends BaseCommand
     private const OPTION_NAME_SKIP_MATCH = 'skip-match';
     private const OPTION_NAME_JSON = 'json';
 
-    private ?PackageSubmitter $packageSubmitter = null;
+    private readonly PackageSubmitter $packageSubmitter;
 
     public function __construct(
         private readonly Container $container,
@@ -22,6 +22,10 @@ class IntegrityCommand extends BaseCommand
         string $name = null
     ) {
         parent::__construct($name);
+        $this->packageSubmitter = $this->container->make(
+            PackageSubmitter::class,
+            ['packageResolverStrategy' => $this->packageResolverStrategy]
+        );
     }
 
     protected function configure()
@@ -33,22 +37,10 @@ class IntegrityCommand extends BaseCommand
             ->addOption(self::OPTION_NAME_SKIP_MATCH, null, InputOption::VALUE_OPTIONAL, 'Skip matching checksums.', false);
     }
 
-    private function getPackageSubmitter(): PackageSubmitter
-    {
-        if ($this->packageSubmitter === null) {
-            $this->packageSubmitter = $this->container->make(
-                PackageSubmitter::class,
-                ['packageResolverStrategy' => $this->packageResolverStrategy]
-            );
-        }
-        return $this->packageSubmitter;
-    }
-
     private function hasMismatchingVerdicts(array $verdicts): bool
     {
         return count(array_filter($verdicts, fn (PackageVerdict $verdict) => $verdict->verdict == 'mismatch')) > 0;
     }
-
 
     private function filterMatchVerdicts(array $verdicts): array
     {
@@ -62,7 +54,7 @@ class IntegrityCommand extends BaseCommand
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $verdicts = $this->getPackageSubmitter()->getPackageVerdicts($output);
+        $verdicts = $this->packageSubmitter->getPackageVerdicts($output);
 
         if ($input->getOption(self::OPTION_NAME_SKIP_MATCH) !== false) {
             $verdicts = $this->filterMatchVerdicts($verdicts);
