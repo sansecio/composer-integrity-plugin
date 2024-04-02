@@ -5,7 +5,7 @@ use Sansec\Integrity\IntegrityCommand;
 use Sansec\Integrity\PackageResolver\LockReaderStrategy;
 use Symfony\Component\Console\Application;
 
-require_once 'vendor/autoload.php';
+require_once __DIR __ . '/vendor/autoload.php';
 
 $container = new Container();
 
