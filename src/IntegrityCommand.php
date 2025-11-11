@@ -19,7 +19,7 @@ class IntegrityCommand extends BaseCommand
     public function __construct(
         private readonly Container $container,
         private readonly PackageResolverStrategy $packageResolverStrategy,
-        string $name = null
+        ?string $name = null
     ) {
         parent::__construct($name);
         $this->packageSubmitter = $this->container->make(
