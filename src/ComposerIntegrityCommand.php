@@ -13,7 +13,7 @@ class ComposerIntegrityCommand extends IntegrityCommand
         private readonly Container $container,
         private readonly PackageResolverStrategy $packageResolverStrategy,
         private readonly Composer $composer,
-        string $name = null
+        ?string $name = null
     ) {
         parent::__construct($container, $packageResolverStrategy, $name);
     }
