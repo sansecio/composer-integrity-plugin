@@ -18,5 +18,10 @@
     "psr-4": {
       "Sansec\\Integrity\\": "src/"
     }
+  },
+  "config": {
+    "platform": {
+      "php": "8.1.0"
+    }
   }
 }
